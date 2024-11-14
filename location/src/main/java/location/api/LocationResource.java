@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.locationtech.jts.geom.Point;
 
 import java.util.List;
 
@@ -24,7 +25,8 @@ public class LocationResource {
 
     @POST
     public Location createLocation(Location location) {
-        return locationService.createLocation(location.name, location.coordinates.x, location.coordinates.y);
+        // Use the x and y coordinates from the Point object
+        return locationService.createLocation(location.name, location.coordinates.getY(), location.coordinates.getX());
     }
 
     @GET
@@ -32,6 +34,7 @@ public class LocationResource {
     public List<Location> searchLocationsByName(@PathParam("name") String name) {
         return locationService.findLocationsByName(name);
     }
+
     @GET
     @Path("/within-radius")
     public Response findLocationsWithinRadius(@QueryParam("latitude") double latitude,
