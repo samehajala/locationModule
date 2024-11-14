@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  postgis-db:
+    image: postgis/postgis:15-3.3
+    container_name: postgis-container
+    restart: always
+    environment:
+      POSTGRES_USER: sameh
+      POSTGRES_PASSWORD: sameh
+      POSTGRES_DB: location_db
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sameh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin-container
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"  # pgAdmin web interface will be available at http://localhost:5050
+    depends_on:
+      - postgis-db
+
+
+volumes:
+  postgis_data:
+    driver: local
