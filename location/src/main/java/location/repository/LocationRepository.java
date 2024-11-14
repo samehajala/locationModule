@@ -46,27 +46,27 @@ public class LocationRepository {
             entityManager.persist(location);
     }
 
-
-    private static final double EARTH_RADIUS = 6371000; // Radius in meters
-
     // Method to find locations within a specified radius
     public List<Location> findLocationsWithinRadius(double latitude, double longitude, double radiusInMeters) {
-        // Use Haversine formula directly in the query for distance calculation
-        String query = """
-            SELECT l
-            FROM Location l
-            WHERE (6371000 * ACOS(
-                COS(RADIANS(:latitude)) * COS(RADIANS(l.coordinates.y)) * 
-                COS(RADIANS(l.coordinates.x) - RADIANS(:longitude)) + 
-                SIN(RADIANS(:latitude)) * SIN(RADIANS(l.coordinates.y))
-            )) <= :radius
-        """;
+        // Radius in degrees (approximation)
+        double radiusInDegrees = radiusInMeters / 111320; // Convert meters to degrees (approx. at equator)
 
-        // Create the query with parameters for latitude, longitude, and radius
-        TypedQuery<Location> locationQuery = (TypedQuery<Location>) entityManager.createQuery(query);
-        locationQuery.setParameter("latitude", latitude);
-        locationQuery.setParameter("longitude", longitude);
-        locationQuery.setParameter("radius", radiusInMeters);
+        // Define a simple bounding box around the point (latitude, longitude)
+        double minLat = latitude - radiusInDegrees;
+        double maxLat = latitude + radiusInDegrees;
+        double minLon = longitude - radiusInDegrees;
+        double maxLon = longitude + radiusInDegrees;
+
+        // Create the query with bounding box constraints
+        String query = "SELECT l FROM Location l WHERE l.coordinates.x BETWEEN :minLon AND :maxLon " +
+                       "AND l.coordinates.y BETWEEN :minLat AND :maxLat";
+
+        // Create the TypedQuery
+        TypedQuery<Location> locationQuery = entityManager.createQuery(query, Location.class);
+        locationQuery.setParameter("minLon", minLon);
+        locationQuery.setParameter("maxLon", maxLon);
+        locationQuery.setParameter("minLat", minLat);
+        locationQuery.setParameter("maxLat", maxLat);
 
         // Execute the query and return the result
         return locationQuery.getResultList();

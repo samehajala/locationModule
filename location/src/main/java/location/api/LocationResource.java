@@ -3,7 +3,6 @@ package location.api;
 import location.dto.LocationDTO;
 import location.service.LocationService;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -24,7 +23,6 @@ public class LocationResource {
     }
 
     @POST
-    @Transactional
     // Endpoint to create a new location
     public Response createLocation(LocationDTO locationDTO) {
         LocationDTO savedLocation = locationService.createLocation(locationDTO);
@@ -40,22 +38,25 @@ public class LocationResource {
 
     @GET
     @Path("/within-radius")
-    @Produces(MediaType.APPLICATION_JSON)
+    // Endpoint to find locations within a specified radius
     public Response findLocationsWithinRadius(@QueryParam("latitude") double latitude,
                                               @QueryParam("longitude") double longitude,
-                                              @QueryParam("radius") double radius) {
-        // Call the service layer method
-        List<LocationDTO> locations = locationService.findLocationsWithinRadius(latitude, longitude, radius);
-    
-        // Return NOT_FOUND if the list is empty
-        if (locations.isEmpty()) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("No locations found within the given radius")
+                                              @QueryParam("radius") double radiusInMeters) {
+        if (radiusInMeters <= 0) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Radius must be a positive value.")
                     .build();
         }
-        // Return OK response with list of locations
-        return Response.ok(locations).build();
-    }
+
+        try {
+            List<LocationDTO> locations = locationService.findLocationsWithinRadius(latitude, longitude, radiusInMeters);
+            return Response.ok(locations).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("An error occurred while retrieving locations within the radius.")
+                    .build();
+        }
+    } 
     
 
     @GET
@@ -63,7 +64,19 @@ public class LocationResource {
     // Endpoint to get the distance between two locations
     public Response getDistance(@QueryParam("location1Id") Long location1Id,
                                 @QueryParam("location2Id") Long location2Id) {
-        double distance = locationService.getDistance(location1Id, location2Id);
-        return Response.ok(distance).build();
+        if (location1Id == null || location2Id == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Location IDs must be provided.")
+                    .build();
+        }
+        
+        try {
+            double distance = locationService.getDistance(location1Id, location2Id);
+            return Response.ok(distance).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("An error occurred while calculating the distance.")
+                    .build();
+        }
     }
 }

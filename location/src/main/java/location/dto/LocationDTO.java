@@ -1,5 +1,7 @@
 package location.dto;
 
+import org.locationtech.jts.geom.Point;
+
 public class LocationDTO {
     private Long id ; 
     private String name;
@@ -51,5 +53,9 @@ public class LocationDTO {
 
     public void setLongitude(double longitude) {
         this.longitude = longitude;
+    }
+    public void setCoordinates(Point coordinates) {
+        this.latitude=coordinates.getX() ; 
+        this.longitude=coordinates.getY() ; 
     }
 }
