@@ -1,45 +1,97 @@
 package location.repository;
 
 import location.domain.Location;
-import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
+
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateSequence;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 
 @ApplicationScoped
-public class LocationRepository implements PanacheRepository<Location> {
+public class LocationRepository {
 
-    // Method to find locations by name
-    public List<Location> findLocationsByName(String name) {
-        return find("name", name).list();
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    // Method to find a location by its ID
+    public Location findById(Long id) {
+        return entityManager.find(Location.class, id);
     }
-    
-    // Method to find locations within a specified radius (in meters)
-    @Transactional
-    public List<Location> findLocationsWithinRadius(double latitude, double longitude, double radiusInMeters) {
-        // Create a Point from latitude and longitude (assuming WGS 84, SRID 4326)
-        Point point = new org.locationtech.jts.geom.GeometryFactory().createPoint(new org.locationtech.jts.geom.Coordinate(longitude, latitude));
 
-        // PostGIS function ST_DWithin returns true if two geometries are within a certain distance
-        String query = "SELECT l FROM Location l WHERE ST_DWithin(l.coordinates, :point, :radius)";
-        TypedQuery<Location> typedQuery = getEntityManager().createQuery(query, Location.class);
-        typedQuery.setParameter("point", point);
-        typedQuery.setParameter("radius", radiusInMeters);
+    // Method to list all locations
+    public List<Location> listAll() {
+        String query = "SELECT l FROM Location l";
+        TypedQuery<Location> typedQuery = entityManager.createQuery(query, Location.class);
         return typedQuery.getResultList();
     }
 
+    // Method to find locations by name
+    public List<Location> findLocationsByName(String name) {
+        String query = "SELECT l FROM Location l WHERE l.name = :name";
+        TypedQuery<Location> typedQuery = entityManager.createQuery(query, Location.class);
+        typedQuery.setParameter("name", name);
+        return typedQuery.getResultList();
+    }
+
+    // Method to save a location (persist)
+    @Transactional
+    public void save(Location location) {
+            entityManager.persist(location);
+    }
+
+
+    private static final double EARTH_RADIUS = 6371000; // Radius in meters
+
+    // Method to find locations within a specified radius
+    public List<Location> findLocationsWithinRadius(double latitude, double longitude, double radiusInMeters) {
+        // Use Haversine formula directly in the query for distance calculation
+        String query = """
+            SELECT l
+            FROM Location l
+            WHERE (6371000 * ACOS(
+                COS(RADIANS(:latitude)) * COS(RADIANS(l.coordinates.y)) * 
+                COS(RADIANS(l.coordinates.x) - RADIANS(:longitude)) + 
+                SIN(RADIANS(:latitude)) * SIN(RADIANS(l.coordinates.y))
+            )) <= :radius
+        """;
+
+        // Create the query with parameters for latitude, longitude, and radius
+        TypedQuery<Location> locationQuery = (TypedQuery<Location>) entityManager.createQuery(query);
+        locationQuery.setParameter("latitude", latitude);
+        locationQuery.setParameter("longitude", longitude);
+        locationQuery.setParameter("radius", radiusInMeters);
+
+        // Execute the query and return the result
+        return locationQuery.getResultList();
+    }
+    
+
+    
     // Method to calculate the distance between two locations (in meters)
     @Transactional
     public double getDistance(Location location1, Location location2) {
-        String query = "SELECT ST_Distance(ST_SetSRID(l1.coordinates, 4326), ST_SetSRID(l2.coordinates, 4326)) " +
-                       "FROM Location l1, Location l2 " +
-                       "WHERE l1.id = :id1 AND l2.id = :id2";
-        TypedQuery<Double> typedQuery = getEntityManager().createQuery(query, Double.class);
-        typedQuery.setParameter("id1", location1.id);
-        typedQuery.setParameter("id2", location2.id);
-        return typedQuery.getSingleResult();
+        String query = """
+            SELECT ST_Distance(
+                ST_SetSRID(ST_MakePoint(:x1, :y1), 4326),
+                ST_SetSRID(ST_MakePoint(:x2, :y2), 4326)
+            )
+            """;
+
+        TypedQuery<Double> distanceQuery = entityManager.createQuery(query, Double.class);
+        distanceQuery.setParameter("x1", location1.getCoordinates().getX());
+        distanceQuery.setParameter("y1", location1.getCoordinates().getY());
+        distanceQuery.setParameter("x2", location2.getCoordinates().getX());
+        distanceQuery.setParameter("y2", location2.getCoordinates().getY());
+        return distanceQuery.getSingleResult();
     }
+    
+
+
 }
