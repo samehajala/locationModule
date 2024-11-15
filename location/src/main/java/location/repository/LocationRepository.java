@@ -4,15 +4,18 @@ import location.domain.Location;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.CoordinateSequence;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+
+
 
 @ApplicationScoped
 public class LocationRepository {
@@ -48,32 +51,46 @@ public class LocationRepository {
 
     // Method to find locations within a specified radius
     public List<Location> findLocationsWithinRadius(double latitude, double longitude, double radiusInMeters) {
-        // Radius in degrees (approximation)
-        double radiusInDegrees = radiusInMeters / 111320; // Convert meters to degrees (approx. at equator)
+        System.out.println("Searching for locations within " + radiusInMeters + " meters from point (" + latitude + ", " + longitude + ")");
 
-        // Define a simple bounding box around the point (latitude, longitude)
-        double minLat = latitude - radiusInDegrees;
-        double maxLat = latitude + radiusInDegrees;
-        double minLon = longitude - radiusInDegrees;
-        double maxLon = longitude + radiusInDegrees;
+        String query = """
+            SELECT * FROM location l
+            WHERE ST_DWithin(
+                l.coordinates,
+                ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326),
+                :radiusInMeters
+            )
+        """;
 
-        // Create the query with bounding box constraints
-        String query = "SELECT l FROM Location l WHERE l.coordinates.x BETWEEN :minLon AND :maxLon " +
-                       "AND l.coordinates.y BETWEEN :minLat AND :maxLat";
+        List<Location> locationsWithinRadius = new ArrayList<>();
+        try {
+            Query nativeQuery = entityManager.createNativeQuery(query, Location.class);
 
-        // Create the TypedQuery
-        TypedQuery<Location> locationQuery = entityManager.createQuery(query, Location.class);
-        locationQuery.setParameter("minLon", minLon);
-        locationQuery.setParameter("maxLon", maxLon);
-        locationQuery.setParameter("minLat", minLat);
-        locationQuery.setParameter("maxLat", maxLat);
+            nativeQuery.setParameter("latitude", latitude);
+            nativeQuery.setParameter("longitude", longitude);
+            nativeQuery.setParameter("radiusInMeters", radiusInMeters);
 
-        // Execute the query and return the result
-        return locationQuery.getResultList();
+            // Add type safety by specifying the correct generic type
+            locationsWithinRadius = ((List<?>) nativeQuery.getResultList())
+                    .stream()
+                    .filter(result -> result instanceof Location)
+                    .map(result -> (Location) result)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            System.err.println("An error occurred during query execution: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        if (locationsWithinRadius.isEmpty()) {
+            System.out.println("No locations found within the specified radius.");
+        } else {
+            System.out.println("Found " + locationsWithinRadius.size() + " locations.");
+        }
+
+        return locationsWithinRadius;
     }
-    
 
-    
     // Method to calculate the distance between two locations (in meters)
     @Transactional
     public double getDistance(Location location1, Location location2) {

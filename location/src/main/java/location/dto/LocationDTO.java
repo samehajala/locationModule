@@ -1,36 +1,35 @@
 package location.dto;
 
-import org.locationtech.jts.geom.Point;
-
 public class LocationDTO {
-    private Long id ; 
+    private Long id;
     private String name;
     private double latitude;
     private double longitude;
 
-    // Constructors
-    public LocationDTO() {
-    }
-    public LocationDTO( double latitude, double longitude) {
+    // Constructors, Getters, and Setters
+
+    public LocationDTO() {}
+
+    public LocationDTO(double latitude, double longitude) {
         this.latitude = latitude;
         this.longitude = longitude;
     }
-    public LocationDTO(Long id,String name, double latitude, double longitude) {
-        this.id=id ; 
+
+    public LocationDTO(Long id, String name, double latitude, double longitude) {
+        this.id = id;
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
     }
 
     public Long getId() {
-        return this.id;
+        return id;
     }
 
     public void setId(Long id) {
         this.id = id;
     }
 
-    // Getters and Setters
     public String getName() {
         return name;
     }
@@ -53,9 +52,5 @@ public class LocationDTO {
 
     public void setLongitude(double longitude) {
         this.longitude = longitude;
-    }
-    public void setCoordinates(Point coordinates) {
-        this.latitude=coordinates.getX() ; 
-        this.longitude=coordinates.getY() ; 
     }
 }

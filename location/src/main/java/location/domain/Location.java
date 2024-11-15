@@ -1,12 +1,13 @@
 package location.domain;
 
+import jakarta.json.bind.annotation.JsonbTransient;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
-import org.locationtech.jts.geom.Coordinate;
+import org.hibernate.annotations.Type;
 import org.locationtech.jts.geom.Point;
 
 @Entity
@@ -18,6 +19,8 @@ public class Location  {
 
     @Column(nullable = false)
     public String name;
+    @JsonbTransient
+    @Column(columnDefinition = "geometry(Point, 4326)")
     public Point coordinates;
 
     public Location() {

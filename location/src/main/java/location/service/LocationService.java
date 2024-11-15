@@ -38,53 +38,35 @@ public class LocationService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
+    
     public List<LocationDTO> findLocationsWithinRadius(double latitude, double longitude, double radiusInMeters) {
-        // Get all locations (or a subset of them) from the repository
-        List<Location> locations = locationRepository.listAll(); // Adjust as needed
+        System.out.println("Searching for locations within " + radiusInMeters + " meters from point (" + latitude + ", " + longitude + ")");
 
-        // Filter locations by radius
-        return locations.stream()
-            .filter(location -> isWithinRadius(location, latitude, longitude, radiusInMeters))
-            .map(this::convertToDTO) // Correctly map each location to its DTO
-            .collect(Collectors.toList());
+        // Use the repository method to find locations within the specified radius
+        List<Location> locationsWithinRadius = locationRepository.findLocationsWithinRadius(latitude, longitude, radiusInMeters);
+
+        // Debugging: Print details of found locations
+        if (locationsWithinRadius.isEmpty()) {
+            System.out.println("No locations found within the specified radius.");
+        } else {
+            System.out.println("Found " + locationsWithinRadius.size() + " locations:");
+            for (Location loc : locationsWithinRadius) {
+                System.out.println("Location ID: " + loc.getId() + ", Name: " + loc.getName() +
+                                   ", Coordinates: (" + loc.getCoordinates().getX() + ", " + loc.getCoordinates().getY() + ")");
+            }
+        }
+
+        // Convert the list of Location entities to LocationDTOs
+        return locationsWithinRadius.stream()
+                .map(LocationMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    private boolean isWithinRadius(Location location, double latitude, double longitude, double radiusInMeters) {
-        // Calculate the distance using the Haversine formula or other method
-        double distance = calculateDistance(latitude, longitude, location.getCoordinates().getX(), location.getCoordinates().getY());
-        return distance <= radiusInMeters;
-    }
+    
 
-    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371; // Earth radius in kilometers
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
+    
 
-        // Log values to see the input
-        System.out.println("lat1: " + lat1 + ", lon1: " + lon1 + ", lat2: " + lat2 + ", lon2: " + lon2);
-
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
-                   Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                   Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        double distance = R * c * 1000; // Distance in meters
-
-        // Log the calculated distance
-        System.out.println("Calculated distance: " + distance);
-
-        return distance;
-    }
-
-    private LocationDTO convertToDTO(Location location) {
-        // Convert Location entity to LocationDTO
-        LocationDTO dto = new LocationDTO();
-        dto.setId(location.getId());
-        dto.setLatitude(location.getCoordinates().getX());
-        dto.setLongitude(location.getCoordinates().getY());
-        dto.setCoordinates(location.getCoordinates()); // Assuming location has coordinates field
-        return dto;
-    }
+    
 
     public double getDistance(Long location1Id, Long location2Id) {
         Location location1 = locationRepository.findById(location1Id);
