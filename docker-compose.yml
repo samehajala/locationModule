@@ -13,12 +13,14 @@ services:
       - postgis_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sameh"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - location-network
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin-container
@@ -27,10 +29,58 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - "5050:80"  # pgAdmin web interface will be available at http://localhost:5050
+      - "5050:80"
     depends_on:
       - postgis-db
+    networks:
+      - location-network
 
+  location-instance-1:
+    image: location-module/location-jvm
+    container_name: location-instance-1
+    environment:
+      QUARKUS_HTTP_PORT: 8080
+      QUARKUS_DATASOURCE_URL: jdbc:postgresql://postgis-db:5432/location_db
+      QUARKUS_DATASOURCE_USERNAME: sameh
+      QUARKUS_DATASOURCE_PASSWORD: sameh
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgis-db
+    networks:
+      - location-network
+
+  location-instance-2:
+    image: location-module/location-jvm
+    container_name: location-instance-2
+    environment:
+      QUARKUS_HTTP_PORT: 8080
+      QUARKUS_DATASOURCE_URL: jdbc:postgresql://postgis-db:5432/location_db
+      QUARKUS_DATASOURCE_USERNAME: sameh
+      QUARKUS_DATASOURCE_PASSWORD: sameh
+    ports:
+      - "8082:8080"
+    depends_on:
+      - postgis-db
+    networks:
+      - location-network
+
+  nginx-load-balancer:
+    image: nginx:latest
+    container_name: nginx-load-balancer
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:80"  # The load balancer will be accessible on http://localhost:8080
+    depends_on:
+      - location-instance-1
+      - location-instance-2
+    networks:
+      - location-network
+
+networks:
+  location-network:
+    driver: bridge
 
 volumes:
   postgis_data:
