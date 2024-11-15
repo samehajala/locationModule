@@ -1,6 +1,6 @@
 package location.api;
 
-import location.dto.LocationDTO;
+import location.api.dto.LocationDTO;
 import location.service.LocationService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;

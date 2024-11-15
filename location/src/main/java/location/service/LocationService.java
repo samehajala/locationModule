@@ -1,9 +1,9 @@
 package location.service;
 
+import location.api.dto.LocationDTO;
 import location.domain.Location;
-import location.dto.LocationDTO;
-import location.mapper.LocationMapper;
 import location.repository.LocationRepository;
+import location.service.mapper.LocationMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;

@@ -1,4 +1,4 @@
-package location.dto;
+package location.api.dto;
 
 public class LocationDTO {
     private Long id;

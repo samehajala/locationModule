@@ -1,10 +1,11 @@
-package location.mapper;
+package location.service.mapper;
 
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Coordinate;
+
+import location.api.dto.LocationDTO;
 import location.domain.Location;
-import location.dto.LocationDTO;
 
 public class LocationMapper {
 
