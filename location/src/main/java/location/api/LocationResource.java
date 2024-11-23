@@ -36,6 +36,8 @@ public class LocationResource {
         return locationService.findLocationsByName(name);
     }
 
+
+
     @GET
     @Path("/within-radius")
     // Endpoint to find locations within a specified radius
