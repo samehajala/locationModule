@@ -7,7 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
-import org.hibernate.annotations.Type;
+
 import org.locationtech.jts.geom.Point;
 
 @Entity
